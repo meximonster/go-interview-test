@@ -151,6 +151,9 @@ func doGetOne(id int) (Friend, error) {
 		return Friend{}, fmt.Errorf("cannot perform request: %s", err)
 	}
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return Friend{}, fmt.Errorf("friend with id %d not found", id)
+		}
 		return Friend{}, fmt.Errorf("bad status code: %d. Expected: %d", resp.StatusCode, http.StatusCreated)
 	}
 	bodyBytes, err := io.ReadAll(resp.Body)
