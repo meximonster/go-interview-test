@@ -21,9 +21,9 @@ type User struct {
 	} `json:"company"`
 }
 
-type UserManager struct{}
+type UserFetcher struct{}
 
-func (u *UserManager) GetUsers() ([]User, error) {
+func (u *UserFetcher) GetUsers() ([]User, error) {
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -38,12 +38,12 @@ func (u *UserManager) GetUsers() ([]User, error) {
 	return users, nil
 }
 
-type MyApp struct {
-	UserManager *UserManager
+type SimpleApp struct {
+	UserFetcher *UserFetcher
 }
 
-func (a *MyApp) FilterByKeyword(keywords []string) ([]User, error) {
-	users, err := a.UserManager.GetUsers()
+func (a *SimpleApp) FilterByKeyword(keywords []string) ([]User, error) {
+	users, err := a.UserFetcher.GetUsers()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get users: %v", err)
 	}
