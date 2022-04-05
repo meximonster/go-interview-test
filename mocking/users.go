@@ -10,15 +10,16 @@ import (
 const url = "https://jsonplaceholder.typicode.com/users"
 
 type User struct {
-	Id       int    `json:"id"`
-	Name     string `json:"name"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Company  struct {
-		Name        string `json:"name"`
-		CatchPhrase string `json:"catchPhrase"`
-		Bs          string `json:"bs"`
-	} `json:"company"`
+	Id       int     `json:"id"`
+	Name     string  `json:"name"`
+	Username string  `json:"username"`
+	Email    string  `json:"email"`
+	Company  Company `json:"company"`
+}
+
+type Company struct {
+	Name        string `json:"name"`
+	CatchPhrase string `json:"catchPhrase"`
 }
 
 type UserFetcher struct{}

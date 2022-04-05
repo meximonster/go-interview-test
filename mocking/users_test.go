@@ -5,8 +5,8 @@ import (
 )
 
 func TestMyApp_FilterByKeyword(t *testing.T) {
-	userManager := UserFetcher{}
-	app := SimpleApp{&userManager}
+	userFetcher := UserFetcher{}
+	app := SimpleApp{&userFetcher}
 	keywords := []string{"server", "net", "multimedia", "task"}
 	users, err := app.FilterByKeyword(keywords)
 	if err != nil {
