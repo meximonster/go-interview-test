@@ -17,5 +17,6 @@ program!
 
 ### Notes
 
-- No need to modify any code except for `Consume()`, `Produce()` and `main()` functions! If you think that this is
-  necessary for your work though, you can do it!
+- You can modify `Consume()`, `Produce()` and `main()` functions. By modify we mean body, signature, return values,
+  anything. No need to write code elsewhere in the file, but if you think that this is necessary for your work, you can
+  do it!

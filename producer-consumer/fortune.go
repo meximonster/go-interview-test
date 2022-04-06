@@ -40,6 +40,8 @@ func main() {
 	fmt.Printf("finished after %v. %d people are talking about fortune.", time.Since(start), len(result))
 }
 
+// try not to edit the code below.
+
 type Tweet struct {
 	Username string
 	Content  string
