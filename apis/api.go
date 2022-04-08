@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
+	"sync"
 
 	"github.com/gorilla/mux"
 )
@@ -15,6 +17,8 @@ type (
 		Age  int    `json:"age"`
 	}
 	App struct {
+		// for protection against concurrent reading/writing.
+		mtx     sync.Mutex
 		Router  *mux.Router
 		Friends []Friend
 	}
@@ -26,17 +30,75 @@ func (a *App) healthCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) getAll(w http.ResponseWriter, r *http.Request) {
-	// place your code and add an ?isAdult=true or ?isAdult=false filter
-	JSON(w, r, http.StatusOK, a.Friends)
+	params, ok := r.URL.Query()["isAdult"]
+	var isAdult string
+	if !(!ok || len(params[0]) < 1) {
+		isAdult = params[0]
+	}
+	var response []Friend
+	a.mtx.Lock()
+	switch isAdult {
+	case "true":
+		for _, f := range a.Friends {
+			if f.Age >= 18 {
+				response = append(response, f)
+			}
+		}
+	case "false":
+		for _, f := range a.Friends {
+			if f.Age < 18 {
+				response = append(response, f)
+			}
+		}
+	case "":
+		response = a.Friends
+	default:
+		JSON(w, r, http.StatusBadRequest, "unrecognized input for isAdult")
+		return
+	}
+	a.mtx.Unlock()
+	if len(response) == 0 {
+		JSON(w, r, http.StatusOK, "no friends match")
+	}
+	JSON(w, r, http.StatusOK, response)
 }
 
 func (a *App) getById(w http.ResponseWriter, r *http.Request) {
-	// place your code here to get a friend by id
-	JSON(w, r, http.StatusOK, nil)
+	id := mux.Vars(r)["id"]
+	if id == "" {
+		JSON(w, r, http.StatusBadRequest, "missing id parameter")
+		return
+	}
+	intId, err := strconv.Atoi(id)
+	if err != nil {
+		log.Println("failed to convert id to int", err)
+		JSON(w, r, http.StatusBadRequest, "wrong data type for id")
+		return
+	}
+	a.mtx.Lock()
+	var resp Friend
+	for _, f := range a.Friends {
+		if f.Id == intId {
+			resp = f
+		}
+	}
+	a.mtx.Unlock()
+	JSON(w, r, http.StatusOK, resp)
 }
 
 func (a *App) add(w http.ResponseWriter, r *http.Request) {
-	// place your code here to add a new friend
+	var f Friend
+	err := json.NewDecoder(r.Body).Decode(&f)
+	if err != nil {
+		JSON(w, r, http.StatusBadRequest, err.Error())
+	}
+	if f.Name == "" {
+		JSON(w, r, http.StatusBadRequest, "friend needs a name!")
+	}
+	f.Id = len(a.Friends) + 1
+	a.mtx.Lock()
+	a.Friends = append(a.Friends, f)
+	a.mtx.Unlock()
 	JSON(w, r, http.StatusCreated, nil)
 }
 

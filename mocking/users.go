@@ -24,9 +24,13 @@ type Company struct {
 
 type UserFetcher struct{}
 
-func (u *UserFetcher) GetUsers() ([]User, error) {
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+func (u *UserFetcher) GetUsers(client HTTPClient) ([]User, error) {
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("get users request error: %v", err)
 	}
@@ -43,8 +47,8 @@ type SimpleApp struct {
 	UserFetcher *UserFetcher
 }
 
-func (a *SimpleApp) FilterByKeyword(keywords []string) ([]User, error) {
-	users, err := a.UserFetcher.GetUsers()
+func (a *SimpleApp) FilterByKeyword(keywords []string, client HTTPClient) ([]User, error) {
+	users, err := a.UserFetcher.GetUsers(client)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get users: %v", err)
 	}

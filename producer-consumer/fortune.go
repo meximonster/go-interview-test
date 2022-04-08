@@ -4,39 +4,50 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 )
 
-func Produce(stream *TweetStream) []*Tweet {
-	var tweets []*Tweet
+var workers = 10
+var result []*Tweet
+
+func Produce(stream *TweetStream, c chan *Tweet) {
+	defer close(c)
 	for {
 		tweet, err := stream.Next()
 		if err == ErrEOF {
 			break
 		}
-		tweets = append(tweets, tweet)
+		c <- tweet
 	}
-	return tweets
 }
 
-func Consume(tweets []*Tweet) []*Tweet {
-	var result []*Tweet
-	for _, t := range tweets {
+func Consume(c chan *Tweet, wg *sync.WaitGroup) {
+	var mtx sync.Mutex
+	defer wg.Done()
+	for t := range c {
 		if t.IsTalkingAboutFortune() {
 			fmt.Printf("%s is talking about fortune!\n", t.Username)
+			mtx.Lock()
 			result = append(result, t)
+			mtx.Unlock()
 		} else {
 			fmt.Printf("%s is NOT talking about fortune.\n", t.Username)
 		}
 	}
-	return result
 }
 
 func main() {
 	start := time.Now()
 	stream := InitStream()
-	tweets := Produce(stream)
-	result := Consume(tweets)
+	c := make(chan *Tweet)
+	wg := sync.WaitGroup{}
+	go Produce(stream, c)
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go Consume(c, &wg)
+	}
+	wg.Wait()
 	fmt.Printf("finished after %v. %d people are talking about fortune.", time.Since(start), len(result))
 }
 
@@ -50,10 +61,7 @@ type Tweet struct {
 func (t *Tweet) IsTalkingAboutFortune() bool {
 	// let's assume that this function is a very sophisticated machine learning procedure, which takes 0.3 sec
 	time.Sleep(300 * time.Millisecond)
-	if strings.Contains(strings.ToLower(t.Content), "fortune") {
-		return true
-	}
-	return false
+	return strings.Contains(strings.ToLower(t.Content), "fortune")
 }
 
 type TweetStream struct {

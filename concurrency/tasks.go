@@ -13,14 +13,32 @@ var (
 )
 
 // this is a WaitGroup. Helps you manage multiple goroutines. Use it wisely!
-var wg = &sync.WaitGroup{}
+var (
+	wg      = &sync.WaitGroup{}
+	workers = 5
+)
 
 // RunTasks use your Go concurrency knowledge to make this function last less than 3 seconds!
 func RunTasks() {
-	// you can edit this function
-	for _, input := range inputs {
-		task(input)
+	c := make(chan string)
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for input := range c {
+				task(input)
+			}
+		}()
 	}
+
+	go func() {
+		defer close(c)
+		for _, input := range inputs {
+			c <- input
+		}
+	}()
+
+	wg.Wait()
 }
 
 // assuming that one task takes 0.5 seconds to complete. Please don't edit this code.
